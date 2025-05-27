@@ -16,7 +16,7 @@ tools_df = pd.DataFrame({"Tool": ["CrowdStrike", "Defender", "Tenable"], "Covera
 
 # Helper to style each chart
 card_style = {
-    "padding": "10px",
+    "padding": "5px",
     "backgroundColor": "#f8f9fa",
     "borderRadius": "10px",
     "boxShadow": "0 2px 6px rgba(0,0,0,0.1)",
@@ -28,7 +28,7 @@ chart_config = {"displayModeBar": False}
 mini_charts = dbc.Row([
     dbc.Col(html.A(dbc.Card([
         html.Div("Critical Vulns", className="text-center fw-bold mb-2"),
-        dcc.Graph(figure=px.line(vuln_df, x="Month", y="Count"), config=chart_config, style={"height": "250px"})
+        dcc.Graph(figure=px.line(vuln_df, x="Month", y="Count"), config=chart_config, style={"height": "320px", "padding": "0px 5px"})
     ], style=card_style), href="/vulnerabilities"), md=4),
 
     dbc.Col(html.A(dbc.Card([
