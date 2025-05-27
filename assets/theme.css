@@ -1,18 +1,17 @@
 /* GLOBAL STYLING */
 body {
+  background-color: #f3f4f6;
   font-family: 'Inter', 'Segoe UI', sans-serif;
-  background-color: red;
   color: #1e293b;
   font-size: 15px;
 }
 
-/* H2 headline */
-h2 {
+h1, h2, h3 {
   font-weight: 600;
   color: #1f2937;
 }
 
-/* Card styling */
+/* CARD STYLING */
 .card {
   border-radius: 12px !important;
   transition: all 0.2s ease-in-out;
@@ -20,19 +19,25 @@ h2 {
   background-color: #ffffff;
 }
 
-/* Hover interaction */
+/* HOVER INTERACTION */
 .hover-shadow:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   transform: scale(1.01);
 }
 
-/* Chart padding refinement */
+/* CHARTS */
 .js-plotly-plot {
   padding: 0px 5px;
 }
 
-/* Navbar (if you add it later) */
+/* NAVBAR (optional) */
 .navbar {
   background-color: #ffffff !important;
   border-bottom: 1px solid #e5e7eb;
+}
+
+/* DASHBOARD HEADERS */
+.fs-5 {
+  font-size: 1.1rem;
+  font-weight: 600;
 }
