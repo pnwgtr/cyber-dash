@@ -3,7 +3,7 @@ from dash import html, dcc
 import plotly.graph_objs as go
 import pandas as pd
 
-dash.register_page(__name__, path="/mfa")
+dash.register_page(__name__, path="/MFA")
 
 mfa_df = pd.DataFrame({
     "Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
