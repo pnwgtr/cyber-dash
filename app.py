@@ -1,26 +1,28 @@
 import dash
-from dash import html, page_container, page_registry
 import dash_bootstrap_components as dbc
+from dash import html, dcc
+import dash
 
 app = dash.Dash(__name__, use_pages=True, external_stylesheets=[dbc.themes.BOOTSTRAP])
-app.title = "Cybersecurity Executive Dashboard"
+server = app.server
 
 app.layout = dbc.Container([
-    html.H1("Cybersecurity Executive Dashboard", className="text-center my-4"),
-    
+    dbc.NavbarSimple(
+        brand="Cybersecurity Dashboard",
+        color="primary",
+        dark=True,
+        fluid=True
+    ),
     dbc.Nav(
         [
             dbc.NavLink(page["name"], href=page["path"], active="exact")
-            for page in page_registry.values()
+            for page in dash.page_registry.values()
         ],
         pills=True,
-        className="mb-4 justify-content-center"
+        className="my-3"
     ),
-
-    page_container  # This is what renders the content of the selected page
+    dash.page_container
 ], fluid=True)
-
-server = app.server
 
 if __name__ == "__main__":
     app.run(debug=True)
