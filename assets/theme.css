@@ -1,0 +1,38 @@
+/* GLOBAL STYLING */
+body {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  background-color: #f3f4f6;
+  color: #1e293b;
+  font-size: 15px;
+}
+
+/* H2 headline */
+h2 {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Card styling */
+.card {
+  border-radius: 12px !important;
+  transition: all 0.2s ease-in-out;
+  border: none !important;
+  background-color: #ffffff;
+}
+
+/* Hover interaction */
+.hover-shadow:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  transform: scale(1.01);
+}
+
+/* Chart padding refinement */
+.js-plotly-plot {
+  padding: 0px 5px;
+}
+
+/* Navbar (if you add it later) */
+.navbar {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e5e7eb;
+}
