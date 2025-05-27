@@ -20,5 +20,7 @@ app.layout = dbc.Container([
     page_container  # This is what renders the content of the selected page
 ], fluid=True)
 
+server = app.server
+
 if __name__ == "__main__":
     app.run(debug=True)
