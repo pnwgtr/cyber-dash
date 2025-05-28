@@ -6,6 +6,7 @@ import datetime
 import json
 import os
 
+
 dash.register_page(__name__, path="/news")
 
 DATA_FILE = os.path.join("data", "internal_updates.json")
@@ -30,15 +31,28 @@ def save_internal_update(title, body):
     with open(DATA_FILE, "w") as f:
         json.dump(updates, f, indent=2)
 
-# === FEED ===
-rss_url = "https://feeds.feedburner.com/TheHackersNews"
-try:
-    feed = feedparser.parse(rss_url)
-    if not feed.entries:
-        raise ValueError("No entries in RSS feed.")
-except Exception as e:
-    print(f"Error fetching RSS feed: {e}")
-    feed = {"entries": []}
+# === MULTIPLE RSS FEEDS ===
+rss_urls = [
+    "https://isc.sans.edu/rssfeed_full.xml",
+    "https://feeds.feedburner.com/TheHackersNews?format=xml",
+    "https://www.usom.gov.tr/rss/tehdit.rss",
+    "https://www.bleepingcomputer.com/feed/"
+]
+
+combined_entries = []
+
+for url in rss_urls:
+    try:
+        parsed = feedparser.parse(url)
+        combined_entries.extend(parsed.entries)
+    except Exception as e:
+        print(f"Error fetching feed from {url}: {e}")
+
+# Sort entries by published date if available
+def get_published(entry):
+    return getattr(entry, "published_parsed", None)
+
+combined_entries = sorted(combined_entries, key=get_published, reverse=True)
 
 # === UI COMPONENTS ===
 def internal_update_cards(updates):
@@ -58,7 +72,7 @@ def internal_update_cards(updates):
         for update in updates
     ]
 
-def public_news_cards(feed):
+def public_news_cards(entries):
     return [
         dbc.Card([
             dbc.CardHeader([
@@ -71,7 +85,7 @@ def public_news_cards(feed):
                 dbc.Button("Read more", href=entry.link, target="_blank", size="sm", color="primary")
             ])
         ], className="mb-3 shadow-sm border-start border-4 border-secondary")
-        for entry in feed.get("entries", [])[:5]
+        for entry in entries[:10]
     ]
 
 layout = dbc.Container([
@@ -81,7 +95,7 @@ layout = dbc.Container([
     html.Div(id="internal-update-list", children=internal_update_cards(load_internal_updates()), className="mb-5"),
 
     html.H3("Cybersecurity News Headlines", className="my-4 fw-bold text-secondary"),
-    html.Div(public_news_cards(feed))
+    html.Div(public_news_cards(combined_entries))
 ], fluid=True)
 
 @dash.callback(
