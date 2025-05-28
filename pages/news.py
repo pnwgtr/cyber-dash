@@ -61,24 +61,33 @@ def public_news_cards(feed):
     ]
 
 layout = dbc.Container([
+    dcc.Location(id="url"),
     html.H3("Internal Security Updates", className="my-4"),
 
-    dbc.Form([
-        dbc.Row([
-            dbc.Col(dbc.Input(id="title-input", placeholder="Update title", type="text"), md=4),
-            dbc.Col(dbc.Textarea(id="body-input", placeholder="Details about this update", rows=2), md=6),
-            dbc.Col(dbc.Button("Submit", id="submit-update", color="success", className="w-100"), md=2)
-        ], className="mb-4"),
-        html.Div(id="form-response")
-    ]),
-
+    html.Div(id="admin-form"),
     html.Div(id="internal-update-list", children=internal_update_cards(load_internal_updates()), className="mb-5"),
 
     html.H3("Cybersecurity Headlines", className="my-4"),
     html.Div(public_news_cards(feed))
 ], fluid=True)
 
-# Callback to handle new post submission
+@dash.callback(
+    Output("admin-form", "children"),
+    Input("url", "search")
+)
+def toggle_admin_form(search):
+    if "admin=true" not in (search or ""):
+        return None
+
+    return dbc.Form([
+        dbc.Row([
+            dbc.Col(dbc.Input(id="title-input", placeholder="Update title", type="text"), md=4),
+            dbc.Col(dbc.Textarea(id="body-input", placeholder="Details about this update", rows=2), md=6),
+            dbc.Col(dbc.Button("Submit", id="submit-update", color="success", className="w-100"), md=2)
+        ], className="mb-4"),
+        html.Div(id="form-response")
+    ])
+
 @dash.callback(
     Output("internal-update-list", "children"),
     Output("form-response", "children"),
