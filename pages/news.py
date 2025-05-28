@@ -5,6 +5,7 @@ import feedparser
 import datetime
 import json
 import os
+import time
 
 
 dash.register_page(__name__, path="/news")
@@ -50,7 +51,7 @@ for url in rss_urls:
 
 # Sort entries by published date if available
 def get_published(entry):
-    return getattr(entry, "published_parsed", None)
+    return getattr(entry, "published_parsed", time.gmtime(0))  # fallback to epoch if missing
 
 combined_entries = sorted(combined_entries, key=get_published, reverse=True)
 
