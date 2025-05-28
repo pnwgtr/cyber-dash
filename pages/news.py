@@ -13,8 +13,11 @@ DATA_FILE = os.path.join("data", "internal_updates.json")
 # === HELPERS ===
 def load_internal_updates():
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            return json.load(f)
+        try:
+            with open(DATA_FILE, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading internal updates: {e}")
     return []
 
 def save_internal_update(title, body):
@@ -29,7 +32,13 @@ def save_internal_update(title, body):
 
 # === FEED ===
 rss_url = "https://feeds.feedburner.com/TheHackersNews"
-feed = feedparser.parse(rss_url)
+try:
+    feed = feedparser.parse(rss_url)
+    if not feed.entries:
+        raise ValueError("No entries in RSS feed.")
+except Exception as e:
+    print(f"Error fetching RSS feed: {e}")
+    feed = {"entries": []}
 
 # === UI COMPONENTS ===
 def internal_update_cards(updates):
@@ -57,12 +66,12 @@ def public_news_cards(feed):
                 html.Strong(entry.title)
             ]),
             dbc.CardBody([
-                html.Small(entry.published, className="text-muted"),
-                html.P(entry.summary, style={"fontSize": "0.9rem"}),
+                html.Small(getattr(entry, "published", "No date"), className="text-muted"),
+                html.P(getattr(entry, "summary", "No summary available."), style={"fontSize": "0.9rem"}),
                 dbc.Button("Read more", href=entry.link, target="_blank", size="sm", color="primary")
             ])
         ], className="mb-3 shadow-sm border-start border-4 border-secondary")
-        for entry in feed.entries[:5]
+        for entry in feed.get("entries", [])[:5]
     ]
 
 layout = dbc.Container([
