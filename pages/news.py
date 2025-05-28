@@ -8,9 +8,9 @@ import os
 
 dash.register_page(__name__, path="/news")
 
-# File path for internal updates
 DATA_FILE = os.path.join("data", "internal_updates.json")
 
+# === HELPERS ===
 def load_internal_updates():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r") as f:
@@ -27,47 +27,51 @@ def save_internal_update(title, body):
     with open(DATA_FILE, "w") as f:
         json.dump(updates, f, indent=2)
 
-# RSS feed for public news
+# === FEED ===
 rss_url = "https://feeds.feedburner.com/TheHackersNews"
 feed = feedparser.parse(rss_url)
 
-# Layout for internal cards
+# === UI COMPONENTS ===
 def internal_update_cards(updates):
     if not updates:
         return html.P("No internal updates yet.")
     return [
         dbc.Card([
-            dbc.CardHeader(update["title"]),
+            dbc.CardHeader([
+                html.Span("🔒 Internal", className="badge bg-success me-2"),
+                html.Strong(update["title"])
+            ]),
             dbc.CardBody([
                 html.Small(update["date"], className="text-muted"),
-                html.P(update["body"])
+                html.P(update["body"], style={"fontSize": "0.9rem"})
             ])
-        ], className="mb-3 shadow-sm")
+        ], className="mb-3 shadow-sm border-start border-4 border-success")
         for update in updates
     ]
 
-# Layout for public news
 def public_news_cards(feed):
     return [
         dbc.Card([
-            dbc.CardHeader(entry.title),
+            dbc.CardHeader([
+                html.Span("🌐 Industry", className="badge bg-secondary me-2"),
+                html.Strong(entry.title)
+            ]),
             dbc.CardBody([
                 html.Small(entry.published, className="text-muted"),
                 html.P(entry.summary, style={"fontSize": "0.9rem"}),
                 dbc.Button("Read more", href=entry.link, target="_blank", size="sm", color="primary")
             ])
-        ], className="mb-3 shadow-sm")
+        ], className="mb-3 shadow-sm border-start border-4 border-secondary")
         for entry in feed.entries[:5]
     ]
 
 layout = dbc.Container([
     dcc.Location(id="url"),
-    html.H3("Internal Security Updates", className="my-4"),
-
+    html.H3("Internal Security Updates", className="my-4 fw-bold text-success"),
     html.Div(id="admin-form"),
     html.Div(id="internal-update-list", children=internal_update_cards(load_internal_updates()), className="mb-5"),
 
-    html.H3("Cybersecurity Headlines", className="my-4"),
+    html.H3("Cybersecurity News Headlines", className="my-4 fw-bold text-secondary"),
     html.Div(public_news_cards(feed))
 ], fluid=True)
 
