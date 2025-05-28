@@ -51,7 +51,8 @@ for url in rss_urls:
 
 # Sort entries by published date if available
 def get_published(entry):
-    return getattr(entry, "published_parsed", time.gmtime(0))  # fallback to epoch if missing
+    pub = getattr(entry, "published_parsed", None)
+    return pub if pub is not None else time.gmtime(0)  # fallback to epoch if missing
 
 combined_entries = sorted(combined_entries, key=get_published, reverse=True)
 
