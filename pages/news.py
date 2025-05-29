@@ -111,8 +111,8 @@ layout = dbc.Container([
     dbc.Input(id="search-input", placeholder="Search industry news...", type="text", className="mb-3"),
     html.Div([
         dbc.Nav([
-            dbc.NavItem(dbc.NavLink("All", href="#", id="tab-all", active=True)),
-            *[dbc.NavItem(dbc.NavLink(label, href="#", id=f"tab-{source}")) for source, label in source_labels.items()]
+            dbc.NavItem(dbc.NavLink("All", href="#", id="tab-all", active=True, n_clicks_timestamp=0)),
+            *[dbc.NavItem(dbc.NavLink(label, href="#", id=f"tab-{source}", n_clicks_timestamp=0)) for source, label in source_labels.items()]
         ], pills=True, justified=True, id="source-tabs-nav")
     ], className="mb-3"),
     html.Div(id="news-list"),
@@ -155,17 +155,14 @@ def handle_submit(n_clicks, title, body):
 @dash.callback(
     Output("news-list", "children"),
     [Input("search-input", "value"),
-     Input("source-tabs-nav", "n_clicks_timestamp")],
-    Input("load-more", "n_clicks")
+     Input("load-more", "n_clicks")],
+    [Input(f"tab-{source}", "n_clicks_timestamp") for source in ["all"] + list(source_labels.keys())]
 )
-def update_news_list(search_text, tab_clicks, n_clicks):
-    selected_source = "all"
-    if tab_clicks:
-        tab_ids = ["tab-all"] + [f"tab-{source}" for source in source_labels]
-        selected_tab = max(zip(tab_ids, tab_clicks), key=lambda x: x[1])[0]
-        selected_source = selected_tab.replace("tab-", "")
+def update_news_list(search_text, load_more_clicks, *tab_timestamps):
+    tab_ids = ["all"] + list(source_labels.keys())
+    selected_source = tab_ids[tab_timestamps.index(max(tab_timestamps))]
 
-    limit = (n_clicks or 0) * 10 + 10
+    limit = (load_more_clicks or 0) * 10 + 10
     filtered = combined_entries
 
     if selected_source != "all":
