@@ -1,3 +1,4 @@
+
 import dash
 from dash import html, dcc, Input, Output, State, ctx
 import dash_bootstrap_components as dbc
@@ -6,7 +7,6 @@ import datetime
 import json
 import os
 import time
-from urllib.parse import urlparse
 
 
 dash.register_page(__name__, path="/news")
@@ -37,31 +37,22 @@ def save_internal_update(title, body):
 rss_urls = [
     "https://isc.sans.edu/rssfeed_full.xml",
     "https://feeds.feedburner.com/TheHackersNews?format=xml",
+    "https://www.usom.gov.tr/rss/tehdit.rss",
     "https://www.bleepingcomputer.com/feed/"
 ]
-
-source_labels = {
-    "isc.sans.edu": "SANS",
-    "feeds.feedburner.com": "The Hacker News",
-    "bleepingcomputer.com": "Bleeping Computer"
-}
 
 combined_entries = []
 
 for url in rss_urls:
     try:
         parsed = feedparser.parse(url)
-        for entry in parsed.entries:
-            source = urlparse(url).netloc.replace("www.", "")
-            entry.source = source
-            entry.source_label = source_labels.get(source, source)
         combined_entries.extend(parsed.entries)
     except Exception as e:
         print(f"Error fetching feed from {url}: {e}")
 
 # Sort entries by published date if available
 def get_published(entry):
-    pub = entry.get("published_parsed")
+    pub = getattr(entry, "published_parsed", None)
     return pub if pub is not None else time.gmtime(0)  # fallback to epoch if missing
 
 combined_entries = sorted(combined_entries, key=get_published, reverse=True)
@@ -92,31 +83,22 @@ def public_news_cards(entries):
                 html.Strong(entry.title)
             ]),
             dbc.CardBody([
-                html.Small(getattr(entry, "published", "No date"), className="text-muted d-block mb-1"),
-                html.Small(f"Source: {entry.source_label}", className="text-muted mb-2 d-block"),
+                html.Small(getattr(entry, "published", "No date"), className="text-muted"),
                 html.P(getattr(entry, "summary", "No summary available."), style={"fontSize": "0.9rem"}),
                 dbc.Button("Read more", href=entry.link, target="_blank", size="sm", color="primary")
             ])
         ], className="mb-3 shadow-sm border-start border-4 border-secondary")
-        for entry in entries
+        for entry in entries[:10]
     ]
 
 layout = dbc.Container([
     dcc.Location(id="url"),
-    html.H3("Internal Security Updates", className="my-4 fw-bold text-success text-center"),
+    html.H3("Internal Security Updates", className="my-4 fw-bold text-success"),
     html.Div(id="admin-form"),
     html.Div(id="internal-update-list", children=internal_update_cards(load_internal_updates()), className="mb-5"),
 
-    html.H3("Cybersecurity News Headlines", className="my-4 fw-bold text-secondary text-center"),
-    dbc.Input(id="search-input", placeholder="Search industry news...", type="text", className="mb-3"),
-    html.Div([
-        dbc.Nav([
-            dbc.NavItem(dbc.NavLink("All", href="#", id="tab-all", active=True, n_clicks_timestamp=0)),
-            *[dbc.NavItem(dbc.NavLink(label, href="#", id=f"tab-{source}", n_clicks_timestamp=0)) for source, label in source_labels.items()]
-        ], pills=True, justified=True, id="source-tabs-nav")
-    ], className="mb-3"),
-    html.Div(id="news-list"),
-    dbc.Button("Load More", id="load-more", color="secondary", className="my-3")
+    html.H3("Cybersecurity News Headlines", className="my-4 fw-bold text-secondary"),
+    html.Div(public_news_cards(combined_entries))
 ], fluid=True)
 
 @dash.callback(
@@ -151,25 +133,3 @@ def handle_submit(n_clicks, title, body):
     save_internal_update(title, body)
     updates = load_internal_updates()
     return internal_update_cards(updates), dbc.Alert("Update posted!", color="success", dismissable=True)
-
-@dash.callback(
-    Output("news-list", "children"),
-    [Input("search-input", "value"),
-     Input("load-more", "n_clicks")],
-    [Input(f"tab-{source}", "n_clicks_timestamp") for source in ["all"] + list(source_labels.keys())]
-)
-def update_news_list(search_text, load_more_clicks, *tab_timestamps):
-    tab_ids = ["all"] + list(source_labels.keys())
-    selected_source = tab_ids[tab_timestamps.index(max(tab_timestamps))]
-
-    limit = (load_more_clicks or 0) * 10 + 10
-    filtered = combined_entries
-
-    if selected_source != "all":
-        filtered = [entry for entry in filtered if entry.source == selected_source]
-
-    if search_text:
-        search_text = search_text.lower()
-        filtered = [entry for entry in filtered if search_text in entry.title.lower() or search_text in getattr(entry, "summary", "").lower()]
-
-    return public_news_cards(filtered[:limit])
