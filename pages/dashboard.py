@@ -1,69 +1,77 @@
 import dash
-from dash import html, dcc, Input, Output, State, ctx
-import dash_bootstrap_components as dbc
-import plotly.graph_objects as go
+from dash import html, dcc
+import plotly.express as px
 import pandas as pd
+import dash_bootstrap_components as dbc
 
-app = dash.Dash(__name__, use_pages=True, external_stylesheets=[dbc.themes.FLATLY])
-server = app.server
+from plotly.subplots import make_subplots
 
-# === FAKE DATA FOR KPI MINI-CHARTS ===
-kpi_data = {
-    "Compliance": [95, 96, 94, 97, 93, 94],
-    "Phishing": [20, 18, 25, 22, 17, 15],
-    "MFA Adoption": [50, 60, 65, 68, 70, 75],
-    "Tooling": [12, 14, 13, 16, 15, 17],
-    "Culture": [40, 42, 43, 41, 45, 46],
-    "Vulnerabilities": [230, 210, 190, 220, 200, 180]
+dash.register_page(__name__, path="/")
+
+# Mock data for mini charts
+vuln_df = pd.DataFrame({"Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"], "Count": [45, 39, 31, 22, 15, 11]})
+phish_df = pd.DataFrame({"Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"], "Count": [820, 640, 975, 1120, 900, 760]})
+mfa_df = pd.DataFrame({"Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"], "Adoption": [70, 75, 80, 85, 88, 92]})
+incident_df = pd.DataFrame({"Month": ["Apr", "May"], "Incidents": [2, 3]})
+compliance_df = pd.DataFrame({"Framework": ["NIST CSF", "PCI DSS"], "Score %": [72, 64]})
+tools_df = pd.DataFrame({"Tool": ["CrowdStrike", "Defender", "Tenable"], "Coverage %": [100, 60, 100]})
+
+# Helper to style each chart
+card_style = {
+    "padding": "5px",
+    "backgroundColor": "#f8f9fa",
+    "borderRadius": "10px",
+    "boxShadow": "0 2px 6px rgba(0,0,0,0.1)",
+    "height": "100%"
 }
 
-def create_kpi_box(title, values):
-    fig = go.Figure(go.Scatter(y=values, mode="lines+markers", line=dict(color="#0066cc")))
+chart_config = {"displayModeBar": False}
+
+def style_figure(fig):
     fig.update_layout(
-        margin=dict(l=0, r=0, t=0, b=0),
-        height=100,
-        template="plotly_dark",
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        xaxis=dict(showgrid=False, visible=False),
-        yaxis=dict(showgrid=False, visible=False)
+        margin=dict(t=10, b=10, l=10, r=10),
+        font=dict(size=12),
+        title=dict(x=0.5, xanchor='center'),
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=True, gridcolor="#eee")
     )
+    return fig
 
-    return dbc.Card([
-        dbc.CardBody([
-            html.H6(title, className="text-center fw-bold"),
-            dcc.Graph(figure=fig, config={"displayModeBar": False})
-        ])
-    ], className="shadow-sm p-2 m-1", style={"minWidth": "200px", "maxWidth": "250px"})
+mini_charts = dbc.Row([
+    dbc.Col(html.A(dbc.Card([
+        html.Div("Critical Vulns", className="text-center fw-bold fs-5 mb-2"),
+        dcc.Graph(figure=style_figure(px.line(vuln_df, x="Month", y="Count")), config=chart_config, style={"height": "320px", "padding": "0px 5px"})
+    ], style=card_style, className="h-100 hover-shadow border-0"), href="/vulnerabilities"), md=4),
 
-# === NAVIGATION ===
-nav = dbc.Nav([
-    dbc.NavLink("Dashboard", href="/", active="exact"),
-    dbc.NavLink("Compliance", href="/compliance", active="exact"),
-    dbc.NavLink("Phishing", href="/phishing", active="exact"),
-    dbc.NavLink("MFA", href="/mfa", active="exact"),
-    dbc.NavLink("Tooling", href="/tools", active="exact"),
-    dbc.NavLink("Culture", href="/culture", active="exact"),
-    dbc.NavLink("Vulnerabilities", href="/vulnerabilities", active="exact"),
-    dbc.NavLink("Incidents", href="/incidents", active="exact"),
-    dbc.NavLink("News", href="/news", active="exact")
-], pills=True, justified=True, className="mb-4 fw-bold fs-5")
+    dbc.Col(html.A(dbc.Card([
+        html.Div("Phishing Volume", className="text-center fw-bold fs-5 mb-2"),
+        dcc.Graph(figure=style_figure(px.bar(phish_df, x="Month", y="Count")), config=chart_config, style={"height": "320px", "padding": "0px 5px"})
+    ], style=card_style, className="h-100 hover-shadow border-0"), href="/phishing"), md=4),
 
-# === LAYOUT ===
-app.layout = dbc.Container([
-    dcc.Location(id="url"),
-    html.Br(),
-    nav,
+    dbc.Col(html.A(dbc.Card([
+        html.Div("MFA Adoption", className="text-center fw-bold fs-5 mb-2"),
+        dcc.Graph(figure=style_figure(px.line(mfa_df, x="Month", y="Adoption")), config=chart_config, style={"height": "320px", "padding": "0px 5px"})
+    ], style=card_style, className="h-100 hover-shadow border-0"), href="/mfa"), md=4),
 
-    dash.page_container,
+    dbc.Col(html.A(dbc.Card([
+        html.Div("Incidents", className="text-center fw-bold fs-5 mb-2"),
+        dcc.Graph(figure=style_figure(px.bar(incident_df, x="Month", y="Incidents")), config=chart_config, style={"height": "320px", "padding": "0px 5px"})
+    ], style=card_style, className="h-100 hover-shadow border-0"), href="/incidents"), md=4),
 
-    html.Div([
-        html.H4("Quick Metrics Overview", className="text-center text-primary my-4"),
-        dbc.Row([
-            dbc.Col(create_kpi_box(title, values)) for title, values in kpi_data.items()
-        ], justify="center")
-    ], style={"backgroundColor": "#f8f9fa", "borderRadius": "12px", "padding": "20px"})
-], fluid=True)
+    dbc.Col(html.A(dbc.Card([
+        html.Div("Compliance", className="text-center fw-bold fs-5 mb-2"),
+        dcc.Graph(figure=style_figure(px.bar(compliance_df, x="Framework", y="Score %")), config=chart_config, style={"height": "320px", "padding": "0px 5px"})
+    ], style=card_style, className="h-100 hover-shadow border-0"), href="/compliance"), md=4),
 
-if __name__ == "__main__":
-    app.run(debug=True)
+    dbc.Col(html.A(dbc.Card([
+        html.Div("Tool Coverage", className="text-center fw-bold fs-5 mb-2"),
+        dcc.Graph(figure=style_figure(px.bar(tools_df, x="Coverage %", y="Tool", orientation='h')), config=chart_config, style={"height": "320px", "padding": "0px 5px"})
+    ], style=card_style, className="h-100 hover-shadow border-0"), href="/tools"), md=4)
+], className="gy-4")
+
+layout = html.Div([
+    html.H2("Executive Summary Dashboard", className="text-center mb-4"),
+    mini_charts
+])
