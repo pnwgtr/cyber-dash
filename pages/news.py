@@ -103,15 +103,18 @@ def public_news_cards(entries):
 
 layout = dbc.Container([
     dcc.Location(id="url"),
-    html.H3("Internal Security Updates", className="my-4 fw-bold text-success"),
+    html.H3("Internal Security Updates", className="my-4 fw-bold text-success text-center"),
     html.Div(id="admin-form"),
     html.Div(id="internal-update-list", children=internal_update_cards(load_internal_updates()), className="mb-5"),
 
-    html.H3("Cybersecurity News Headlines", className="my-4 fw-bold text-secondary"),
+    html.H3("Cybersecurity News Headlines", className="my-4 fw-bold text-secondary text-center"),
     dbc.Input(id="search-input", placeholder="Search industry news...", type="text", className="mb-3"),
-    dcc.Tabs(id="source-tabs", value="all", children=[
-        dcc.Tab(label="All", value="all")
-    ] + [dcc.Tab(label=label, value=source) for source, label in source_labels.items()]),
+    html.Div([
+        dbc.Nav([
+            dbc.NavItem(dbc.NavLink("All", href="#", id="tab-all", active=True)),
+            *[dbc.NavItem(dbc.NavLink(label, href="#", id=f"tab-{source}")) for source, label in source_labels.items()]
+        ], pills=True, justified=True, id="source-tabs-nav")
+    ], className="mb-3"),
     html.Div(id="news-list"),
     dbc.Button("Load More", id="load-more", color="secondary", className="my-3")
 ], fluid=True)
@@ -151,11 +154,17 @@ def handle_submit(n_clicks, title, body):
 
 @dash.callback(
     Output("news-list", "children"),
-    Input("search-input", "value"),
-    Input("source-tabs", "value"),
+    [Input("search-input", "value"),
+     Input("source-tabs-nav", "n_clicks_timestamp")],
     Input("load-more", "n_clicks")
 )
-def update_news_list(search_text, selected_source, n_clicks):
+def update_news_list(search_text, tab_clicks, n_clicks):
+    selected_source = "all"
+    if tab_clicks:
+        tab_ids = ["tab-all"] + [f"tab-{source}" for source in source_labels]
+        selected_tab = max(zip(tab_ids, tab_clicks), key=lambda x: x[1])[0]
+        selected_source = selected_tab.replace("tab-", "")
+
     limit = (n_clicks or 0) * 10 + 10
     filtered = combined_entries
 
