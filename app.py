@@ -1,31 +1,39 @@
 import dash
-from dash import html, dcc, page_container, page_registry
 import dash_bootstrap_components as dbc
+from dash import html, dcc
 
-# Initialize Dash with page support
+# Initialize the Dash app with support for multipage
 app = dash.Dash(
     __name__,
     use_pages=True,
     external_stylesheets=[dbc.themes.BOOTSTRAP]
 )
-server = app.server
+server = app.server  # For deployment (e.g., with Render)
 
-# Define the main layout with navigation and content
+# Layout definition
 app.layout = dbc.Container([
-    html.H2("Cybersecurity Executive Dashboard", className="my-4 text-center fw-bold"),
-    
-    dbc.Nav(
-        [
-            dbc.NavLink(page["name"], href=page["relative_path"], active="exact")
-            for page in page_registry.values()
-        ],
-        pills=True,
-        justified=True,
-        className="mb-4"
+    # Header / Navbar
+    dbc.NavbarSimple(
+        brand="Cybersecurity Dashboard",
+        color="primary",
+        dark=True,
+        fluid=True
     ),
 
-    page_container
+    # Navigation links for each registered page
+    dbc.Nav(
+        [
+            dbc.NavLink(page["name"], href=page["path"], active="exact")
+            for page in dash.page_registry.values()
+        ],
+        pills=True,
+        className="my-3"
+    ),
+
+    # Main content (the currently selected page)
+    dash.page_container
 ], fluid=True)
 
+# Run the app locally
 if __name__ == "__main__":
     app.run(debug=True)
