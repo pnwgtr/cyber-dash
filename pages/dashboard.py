@@ -51,63 +51,63 @@ mini_charts = dbc.Row([
     # Critical Vulns
     dbc.Col(html.A(dbc.Card([
         html.Div([
-            html.Div("Critical Vulns", className="fw-bold fs-5"),
+            html.Div("Critical Vulns", className="dashboard-section-title"),
             html.Span(f"{get_trend_arrow(vuln_df['Count'].iloc[-1], vuln_df['Count'].iloc[-2])[0]} {vuln_df['Count'].iloc[-1]}",
                       style={"color": get_trend_arrow(vuln_df['Count'].iloc[-1], vuln_df['Count'].iloc[-2])[1]})
         ], className="text-center mb-2"),
         dcc.Graph(figure=style_figure(px.line(vuln_df, x="Month", y="Count")), config=chart_config, style={"height": "320px"})
-    ], style=card_style, className="h-100 dashboard-card border-0"), href="/vulnerabilities"), md=4),
+    ], style=card_style, className="h-100 dashboard-card border-0"), href="/vulnerabilities"), xs=12, md=4),
 
     # Phishing Volume
     dbc.Col(html.A(dbc.Card([
         html.Div([
-            html.Div("Phishing Volume", className="fw-bold fs-5"),
+            html.Div("Phishing Volume", className="dashboard-section-title"),
             html.Span(f"{get_trend_arrow(phish_df['Count'].iloc[-1], phish_df['Count'].iloc[-2])[0]} {phish_df['Count'].iloc[-1]}",
                       style={"color": get_trend_arrow(phish_df['Count'].iloc[-1], phish_df['Count'].iloc[-2])[1]})
         ], className="text-center mb-2"),
         dcc.Graph(figure=style_figure(px.bar(phish_df, x="Month", y="Count")), config=chart_config, style={"height": "320px"})
-    ], style=card_style, className="h-100 dashboard-card border-0"), href="/phishing"), md=4),
+    ], style=card_style, className="h-100 dashboard-card border-0"), href="/phishing"), xs=12, md=4),
 
     # MFA Adoption
     dbc.Col(html.A(dbc.Card([
         html.Div([
-            html.Div("MFA Adoption", className="fw-bold fs-5"),
+            html.Div("MFA Adoption", className="dashboard-section-title"),
             html.Span(f"{get_trend_arrow(mfa_df['Adoption'].iloc[-1], mfa_df['Adoption'].iloc[-2])[0]} {mfa_df['Adoption'].iloc[-1]}%",
                       style={"color": get_trend_arrow(mfa_df['Adoption'].iloc[-1], mfa_df['Adoption'].iloc[-2])[1]})
         ], className="text-center mb-2"),
         dcc.Graph(figure=style_figure(px.line(mfa_df, x="Month", y="Adoption")), config=chart_config, style={"height": "320px"})
-    ], style=card_style, className="h-100 dashboard-card border-0"), href="/mfa"), md=4),
+    ], style=card_style, className="h-100 dashboard-card border-0"), href="/mfa"), xs=12, md=4),
 
     # Incidents
     dbc.Col(html.A(dbc.Card([
         html.Div([
-            html.Div("Incidents", className="fw-bold fs-5"),
+            html.Div("Incidents", className="dashboard-section-title"),
             html.Span(f"{get_trend_arrow(incident_df['Incidents'].iloc[-1], incident_df['Incidents'].iloc[-2])[0]} {incident_df['Incidents'].iloc[-1]}",
                       style={"color": get_trend_arrow(incident_df['Incidents'].iloc[-1], incident_df['Incidents'].iloc[-2])[1]})
         ], className="text-center mb-2"),
         dcc.Graph(figure=style_figure(px.bar(incident_df, x="Month", y="Incidents")), config=chart_config, style={"height": "320px"})
-    ], style=card_style, className="h-100 dashboard-card border-0"), href="/incidents"), md=4),
+    ], style=card_style, className="h-100 dashboard-card border-0"), href="/incidents"), xs=12, md=4),
 
     # Compliance
     dbc.Col(html.A(dbc.Card([
-        html.Div("Compliance", className="text-center fw-bold fs-5 mb-2"),
+        html.Div("Compliance", className="dashboard-section-title text-center mb-2"),
         dcc.Graph(figure=style_figure(px.bar(compliance_df, x="Framework", y="Score %")), config=chart_config, style={"height": "320px"})
-    ], style=card_style, className="h-100 dashboard-card border-0"), href="/compliance"), md=4),
+    ], style=card_style, className="h-100 dashboard-card border-0"), href="/compliance"), xs=12, md=4),
 
     # Tool Coverage
     dbc.Col(html.A(dbc.Card([
-        html.Div("Tool Coverage", className="text-center fw-bold fs-5 mb-2"),
+        html.Div("Tool Coverage", className="dashboard-section-title text-center mb-2"),
         dcc.Graph(figure=style_figure(px.bar(tools_df, x="Coverage %", y="Tool", orientation='h')), config=chart_config, style={"height": "320px"})
-    ], style=card_style, className="h-100 dashboard-card border-0"), href="/tools"), md=4)
+    ], style=card_style, className="h-100 dashboard-card border-0"), href="/tools"), xs=12, md=4)
 
 ], className="gy-4")
 
 # === Final Layout ===
 layout = html.Div([
     html.Div([
-        html.H1("Executive Summary Dashboard", className="text-center fw-bold", style={"fontSize": "2.5rem"}),
-        html.P("A high-level view of cyber health, risks, and posture across the enterprise.", className="text-center text-muted mb-4"),
+        html.H1("Executive Summary Dashboard", className="dashboard-title"),
+        html.P("A high-level view of cyber health, risks, and posture across the enterprise.", className="dashboard-subtitle"),
         html.Hr()
     ]),
     mini_charts
-])
+], className="dashboard-wrapper")
