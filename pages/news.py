@@ -37,9 +37,14 @@ def save_internal_update(title, body):
 rss_urls = [
     "https://isc.sans.edu/rssfeed_full.xml",
     "https://feeds.feedburner.com/TheHackersNews?format=xml",
-    "https://www.usom.gov.tr/rss/tehdit.rss",
     "https://www.bleepingcomputer.com/feed/"
 ]
+
+source_labels = {
+    "isc.sans.edu": "SANS",
+    "feeds.feedburner.com": "The Hacker News",
+    "bleepingcomputer.com": "Bleeping Computer"
+}
 
 combined_entries = []
 
@@ -47,7 +52,9 @@ for url in rss_urls:
     try:
         parsed = feedparser.parse(url)
         for entry in parsed.entries:
-            entry.source = urlparse(url).netloc.replace("www.", "")
+            source = urlparse(url).netloc.replace("www.", "")
+            entry.source = source
+            entry.source_label = source_labels.get(source, source)
         combined_entries.extend(parsed.entries)
     except Exception as e:
         print(f"Error fetching feed from {url}: {e}")
@@ -86,7 +93,7 @@ def public_news_cards(entries):
             ]),
             dbc.CardBody([
                 html.Small(getattr(entry, "published", "No date"), className="text-muted d-block mb-1"),
-                html.Small(f"Source: {entry.source}", className="text-muted mb-2 d-block"),
+                html.Small(f"Source: {entry.source_label}", className="text-muted mb-2 d-block"),
                 html.P(getattr(entry, "summary", "No summary available."), style={"fontSize": "0.9rem"}),
                 dbc.Button("Read more", href=entry.link, target="_blank", size="sm", color="primary")
             ])
@@ -104,7 +111,7 @@ layout = dbc.Container([
     dbc.Input(id="search-input", placeholder="Search industry news...", type="text", className="mb-3"),
     dcc.Tabs(id="source-tabs", value="all", children=[
         dcc.Tab(label="All", value="all")
-    ] + [dcc.Tab(label=urlparse(url).netloc.replace("www.", ""), value=urlparse(url).netloc.replace("www.", "")) for url in rss_urls]),
+    ] + [dcc.Tab(label=label, value=source) for source, label in source_labels.items()]),
     html.Div(id="news-list"),
     dbc.Button("Load More", id="load-more", color="secondary", className="my-3")
 ], fluid=True)
