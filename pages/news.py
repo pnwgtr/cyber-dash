@@ -6,6 +6,7 @@ import datetime
 import json
 import os
 import time
+from urllib.parse import urlparse
 
 
 dash.register_page(__name__, path="/news")
@@ -45,13 +46,15 @@ combined_entries = []
 for url in rss_urls:
     try:
         parsed = feedparser.parse(url)
+        for entry in parsed.entries:
+            entry.source = urlparse(url).netloc.replace("www.", "")
         combined_entries.extend(parsed.entries)
     except Exception as e:
         print(f"Error fetching feed from {url}: {e}")
 
 # Sort entries by published date if available
 def get_published(entry):
-    pub = getattr(entry, "published_parsed", None)
+    pub = entry.get("published_parsed")
     return pub if pub is not None else time.gmtime(0)  # fallback to epoch if missing
 
 combined_entries = sorted(combined_entries, key=get_published, reverse=True)
@@ -82,12 +85,13 @@ def public_news_cards(entries):
                 html.Strong(entry.title)
             ]),
             dbc.CardBody([
-                html.Small(getattr(entry, "published", "No date"), className="text-muted"),
+                html.Small(getattr(entry, "published", "No date"), className="text-muted d-block mb-1"),
+                html.Small(f"Source: {entry.source}", className="text-muted mb-2 d-block"),
                 html.P(getattr(entry, "summary", "No summary available."), style={"fontSize": "0.9rem"}),
                 dbc.Button("Read more", href=entry.link, target="_blank", size="sm", color="primary")
             ])
         ], className="mb-3 shadow-sm border-start border-4 border-secondary")
-        for entry in entries[:10]
+        for entry in entries
     ]
 
 layout = dbc.Container([
@@ -97,7 +101,12 @@ layout = dbc.Container([
     html.Div(id="internal-update-list", children=internal_update_cards(load_internal_updates()), className="mb-5"),
 
     html.H3("Cybersecurity News Headlines", className="my-4 fw-bold text-secondary"),
-    html.Div(public_news_cards(combined_entries))
+    dbc.Input(id="search-input", placeholder="Search industry news...", type="text", className="mb-3"),
+    dcc.Tabs(id="source-tabs", value="all", children=[
+        dcc.Tab(label="All", value="all")
+    ] + [dcc.Tab(label=urlparse(url).netloc.replace("www.", ""), value=urlparse(url).netloc.replace("www.", "")) for url in rss_urls]),
+    html.Div(id="news-list"),
+    dbc.Button("Load More", id="load-more", color="secondary", className="my-3")
 ], fluid=True)
 
 @dash.callback(
@@ -132,3 +141,22 @@ def handle_submit(n_clicks, title, body):
     save_internal_update(title, body)
     updates = load_internal_updates()
     return internal_update_cards(updates), dbc.Alert("Update posted!", color="success", dismissable=True)
+
+@dash.callback(
+    Output("news-list", "children"),
+    Input("search-input", "value"),
+    Input("source-tabs", "value"),
+    Input("load-more", "n_clicks")
+)
+def update_news_list(search_text, selected_source, n_clicks):
+    limit = (n_clicks or 0) * 10 + 10
+    filtered = combined_entries
+
+    if selected_source != "all":
+        filtered = [entry for entry in filtered if entry.source == selected_source]
+
+    if search_text:
+        search_text = search_text.lower()
+        filtered = [entry for entry in filtered if search_text in entry.title.lower() or search_text in getattr(entry, "summary", "").lower()]
+
+    return public_news_cards(filtered[:limit])
