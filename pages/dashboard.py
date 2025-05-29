@@ -45,10 +45,27 @@ def get_trend_arrow(current, previous):
     else:
         return "➖", "gray"
 
+# === Top Navigation ===
+top_nav = dbc.Nav(
+    [
+        dbc.NavItem(dbc.NavLink("Dashboard", href="/")),
+        dbc.NavItem(dbc.NavLink("Compliance", href="/compliance")),
+        dbc.NavItem(dbc.NavLink("Culture", href="/culture")),
+        dbc.NavItem(dbc.NavLink("Incidents", href="/incidents")),
+        dbc.NavItem(dbc.NavLink("MFA", href="/mfa")),
+        dbc.NavItem(dbc.NavLink("News", href="/news")),
+        dbc.NavItem(dbc.NavLink("Phishing", href="/phishing")),
+        dbc.NavItem(dbc.NavLink("Tools", href="/tools")),
+        dbc.NavItem(dbc.NavLink("Vulnerabilities", href="/vulnerabilities")),
+    ],
+    pills=True,
+    justified=True,
+    className="mb-4"
+)
+
 # === Mini Chart Cards ===
 mini_charts = dbc.Row([
 
-    # Critical Vulns
     dbc.Col(html.A(dbc.Card([
         html.Div([
             html.Div("Critical Vulns", className="dashboard-section-title"),
@@ -58,7 +75,6 @@ mini_charts = dbc.Row([
         dcc.Graph(figure=style_figure(px.line(vuln_df, x="Month", y="Count")), config=chart_config, style={"height": "320px"})
     ], style=card_style, className="h-100 dashboard-card border-0"), href="/vulnerabilities"), xs=12, md=4),
 
-    # Phishing Volume
     dbc.Col(html.A(dbc.Card([
         html.Div([
             html.Div("Phishing Volume", className="dashboard-section-title"),
@@ -68,7 +84,6 @@ mini_charts = dbc.Row([
         dcc.Graph(figure=style_figure(px.bar(phish_df, x="Month", y="Count")), config=chart_config, style={"height": "320px"})
     ], style=card_style, className="h-100 dashboard-card border-0"), href="/phishing"), xs=12, md=4),
 
-    # MFA Adoption
     dbc.Col(html.A(dbc.Card([
         html.Div([
             html.Div("MFA Adoption", className="dashboard-section-title"),
@@ -78,7 +93,6 @@ mini_charts = dbc.Row([
         dcc.Graph(figure=style_figure(px.line(mfa_df, x="Month", y="Adoption")), config=chart_config, style={"height": "320px"})
     ], style=card_style, className="h-100 dashboard-card border-0"), href="/mfa"), xs=12, md=4),
 
-    # Incidents
     dbc.Col(html.A(dbc.Card([
         html.Div([
             html.Div("Incidents", className="dashboard-section-title"),
@@ -88,13 +102,11 @@ mini_charts = dbc.Row([
         dcc.Graph(figure=style_figure(px.bar(incident_df, x="Month", y="Incidents")), config=chart_config, style={"height": "320px"})
     ], style=card_style, className="h-100 dashboard-card border-0"), href="/incidents"), xs=12, md=4),
 
-    # Compliance
     dbc.Col(html.A(dbc.Card([
         html.Div("Compliance", className="dashboard-section-title text-center mb-2"),
         dcc.Graph(figure=style_figure(px.bar(compliance_df, x="Framework", y="Score %")), config=chart_config, style={"height": "320px"})
     ], style=card_style, className="h-100 dashboard-card border-0"), href="/compliance"), xs=12, md=4),
 
-    # Tool Coverage
     dbc.Col(html.A(dbc.Card([
         html.Div("Tool Coverage", className="dashboard-section-title text-center mb-2"),
         dcc.Graph(figure=style_figure(px.bar(tools_df, x="Coverage %", y="Tool", orientation='h')), config=chart_config, style={"height": "320px"})
@@ -107,7 +119,8 @@ layout = html.Div([
     html.Div([
         html.H1("Executive Summary Dashboard", className="dashboard-title"),
         html.P("A high-level view of cyber health, risks, and posture across the enterprise.", className="dashboard-subtitle"),
-        html.Hr()
+        html.Hr(),
+        top_nav
     ]),
     mini_charts
 ], className="dashboard-wrapper")
