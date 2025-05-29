@@ -1,77 +1,175 @@
 import dash
-from dash import html, dcc
-import plotly.express as px
-import pandas as pd
+from dash import html, dcc, Input, Output, State, ctx
 import dash_bootstrap_components as dbc
+import feedparser
+import datetime
+import json
+import os
+import time
+from urllib.parse import urlparse
 
-from plotly.subplots import make_subplots
 
-dash.register_page(__name__, path="/")
+dash.register_page(__name__, path="/news")
 
-# Mock data for mini charts
-vuln_df = pd.DataFrame({"Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"], "Count": [45, 39, 31, 22, 15, 11]})
-phish_df = pd.DataFrame({"Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"], "Count": [820, 640, 975, 1120, 900, 760]})
-mfa_df = pd.DataFrame({"Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"], "Adoption": [70, 75, 80, 85, 88, 92]})
-incident_df = pd.DataFrame({"Month": ["Apr", "May"], "Incidents": [2, 3]})
-compliance_df = pd.DataFrame({"Framework": ["NIST CSF", "PCI DSS"], "Score %": [72, 64]})
-tools_df = pd.DataFrame({"Tool": ["CrowdStrike", "Defender", "Tenable"], "Coverage %": [100, 60, 100]})
+DATA_FILE = os.path.join("data", "internal_updates.json")
 
-# Helper to style each chart
-card_style = {
-    "padding": "5px",
-    "backgroundColor": "#f8f9fa",
-    "borderRadius": "10px",
-    "boxShadow": "0 2px 6px rgba(0,0,0,0.1)",
-    "height": "100%"
+# === HELPERS ===
+def load_internal_updates():
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading internal updates: {e}")
+    return []
+
+def save_internal_update(title, body):
+    updates = load_internal_updates()
+    updates.insert(0, {
+        "title": title,
+        "date": datetime.datetime.now().strftime("%B %d, %Y"),
+        "body": body
+    })
+    with open(DATA_FILE, "w") as f:
+        json.dump(updates, f, indent=2)
+
+# === MULTIPLE RSS FEEDS ===
+rss_urls = [
+    "https://isc.sans.edu/rssfeed_full.xml",
+    "https://feeds.feedburner.com/TheHackersNews?format=xml",
+    "https://www.bleepingcomputer.com/feed/"
+]
+
+source_labels = {
+    "isc.sans.edu": "SANS",
+    "feeds.feedburner.com": "The Hacker News",
+    "bleepingcomputer.com": "Bleeping Computer"
 }
 
-chart_config = {"displayModeBar": False}
+combined_entries = []
 
-def style_figure(fig):
-    fig.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(t=10, b=10, l=10, r=10),
-        font=dict(size=12),
-        title=dict(x=0.5, xanchor='center'),
-        xaxis=dict(showgrid=False),
-        yaxis=dict(showgrid=True, gridcolor="#eee")
-    )
-    return fig
+for url in rss_urls:
+    try:
+        parsed = feedparser.parse(url)
+        for entry in parsed.entries:
+            source = urlparse(url).netloc.replace("www.", "")
+            entry.source = source
+            entry.source_label = source_labels.get(source, source)
+        combined_entries.extend(parsed.entries)
+    except Exception as e:
+        print(f"Error fetching feed from {url}: {e}")
 
-mini_charts = dbc.Row([
-    dbc.Col(html.A(dbc.Card([
-        html.Div("Critical Vulns", className="text-center fw-bold fs-5 mb-2"),
-        dcc.Graph(figure=style_figure(px.line(vuln_df, x="Month", y="Count")), config=chart_config, style={"height": "320px", "padding": "0px 5px"})
-    ], style=card_style, className="h-100 hover-shadow border-0"), href="/vulnerabilities"), md=4),
+# Sort entries by published date if available
+def get_published(entry):
+    pub = entry.get("published_parsed")
+    return pub if pub is not None else time.gmtime(0)  # fallback to epoch if missing
 
-    dbc.Col(html.A(dbc.Card([
-        html.Div("Phishing Volume", className="text-center fw-bold fs-5 mb-2"),
-        dcc.Graph(figure=style_figure(px.bar(phish_df, x="Month", y="Count")), config=chart_config, style={"height": "320px", "padding": "0px 5px"})
-    ], style=card_style, className="h-100 hover-shadow border-0"), href="/phishing"), md=4),
+combined_entries = sorted(combined_entries, key=get_published, reverse=True)
 
-    dbc.Col(html.A(dbc.Card([
-        html.Div("MFA Adoption", className="text-center fw-bold fs-5 mb-2"),
-        dcc.Graph(figure=style_figure(px.line(mfa_df, x="Month", y="Adoption")), config=chart_config, style={"height": "320px", "padding": "0px 5px"})
-    ], style=card_style, className="h-100 hover-shadow border-0"), href="/mfa"), md=4),
+# === UI COMPONENTS ===
+def internal_update_cards(updates):
+    if not updates:
+        return html.P("No internal updates yet.")
+    return [
+        dbc.Card([
+            dbc.CardHeader([
+                html.Span("🔒 Internal", className="badge bg-success me-2"),
+                html.Strong(update["title"])
+            ]),
+            dbc.CardBody([
+                html.Small(update["date"], className="text-muted"),
+                html.P(update["body"], style={"fontSize": "0.9rem"})
+            ])
+        ], className="mb-3 shadow-sm border-start border-4 border-success")
+        for update in updates
+    ]
 
-    dbc.Col(html.A(dbc.Card([
-        html.Div("Incidents", className="text-center fw-bold fs-5 mb-2"),
-        dcc.Graph(figure=style_figure(px.bar(incident_df, x="Month", y="Incidents")), config=chart_config, style={"height": "320px", "padding": "0px 5px"})
-    ], style=card_style, className="h-100 hover-shadow border-0"), href="/incidents"), md=4),
+def public_news_cards(entries):
+    return [
+        dbc.Card([
+            dbc.CardHeader([
+                html.Span("🌐 Industry", className="badge bg-secondary me-2"),
+                html.Strong(entry.title)
+            ]),
+            dbc.CardBody([
+                html.Small(getattr(entry, "published", "No date"), className="text-muted d-block mb-1"),
+                html.Small(f"Source: {entry.source_label}", className="text-muted mb-2 d-block"),
+                html.P(getattr(entry, "summary", "No summary available."), style={"fontSize": "0.9rem"}),
+                dbc.Button("Read more", href=entry.link, target="_blank", size="sm", color="primary")
+            ])
+        ], className="mb-3 shadow-sm border-start border-4 border-secondary")
+        for entry in entries
+    ]
 
-    dbc.Col(html.A(dbc.Card([
-        html.Div("Compliance", className="text-center fw-bold fs-5 mb-2"),
-        dcc.Graph(figure=style_figure(px.bar(compliance_df, x="Framework", y="Score %")), config=chart_config, style={"height": "320px", "padding": "0px 5px"})
-    ], style=card_style, className="h-100 hover-shadow border-0"), href="/compliance"), md=4),
+layout = dbc.Container([
+    dcc.Location(id="url"),
+    html.H3("Internal Security Updates", className="my-4 fw-bold text-success text-center"),
+    html.Div(id="admin-form"),
+    html.Div(id="internal-update-list", children=internal_update_cards(load_internal_updates()), className="mb-5"),
 
-    dbc.Col(html.A(dbc.Card([
-        html.Div("Tool Coverage", className="text-center fw-bold fs-5 mb-2"),
-        dcc.Graph(figure=style_figure(px.bar(tools_df, x="Coverage %", y="Tool", orientation='h')), config=chart_config, style={"height": "320px", "padding": "0px 5px"})
-    ], style=card_style, className="h-100 hover-shadow border-0"), href="/tools"), md=4)
-], className="gy-4")
+    html.H3("Cybersecurity News Headlines", className="my-4 fw-bold text-secondary text-center"),
+    dbc.Input(id="search-input", placeholder="Search industry news...", type="text", className="mb-3"),
+    html.Div([
+        dbc.Nav([
+            dbc.NavItem(dbc.NavLink("All", href="#", id="tab-all", active=True, n_clicks_timestamp=0)),
+            *[dbc.NavItem(dbc.NavLink(label, href="#", id=f"tab-{source}", n_clicks_timestamp=0)) for source, label in source_labels.items()]
+        ], pills=True, justified=True, id="source-tabs-nav")
+    ], className="mb-3"),
+    html.Div(id="news-list"),
+    dbc.Button("Load More", id="load-more", color="secondary", className="my-3")
+], fluid=True)
 
-layout = html.Div([
-    html.H2("Executive Summary Dashboard", className="text-center mb-4"),
-    mini_charts
-])
+@dash.callback(
+    Output("admin-form", "children"),
+    Input("url", "search")
+)
+def toggle_admin_form(search):
+    if "admin=true" not in (search or ""):
+        return None
+
+    return dbc.Form([
+        dbc.Row([
+            dbc.Col(dbc.Input(id="title-input", placeholder="Update title", type="text"), md=4),
+            dbc.Col(dbc.Textarea(id="body-input", placeholder="Details about this update", rows=2), md=6),
+            dbc.Col(dbc.Button("Submit", id="submit-update", color="success", className="w-100"), md=2)
+        ], className="mb-4"),
+        html.Div(id="form-response")
+    ])
+
+@dash.callback(
+    Output("internal-update-list", "children"),
+    Output("form-response", "children"),
+    Input("submit-update", "n_clicks"),
+    State("title-input", "value"),
+    State("body-input", "value"),
+    prevent_initial_call=True
+)
+def handle_submit(n_clicks, title, body):
+    if not title or not body:
+        return dash.no_update, dbc.Alert("Please fill in both fields.", color="danger", dismissable=True)
+
+    save_internal_update(title, body)
+    updates = load_internal_updates()
+    return internal_update_cards(updates), dbc.Alert("Update posted!", color="success", dismissable=True)
+
+@dash.callback(
+    Output("news-list", "children"),
+    [Input("search-input", "value"),
+     Input("load-more", "n_clicks")],
+    [Input(f"tab-{source}", "n_clicks_timestamp") for source in ["all"] + list(source_labels.keys())]
+)
+def update_news_list(search_text, load_more_clicks, *tab_timestamps):
+    tab_ids = ["all"] + list(source_labels.keys())
+    selected_source = tab_ids[tab_timestamps.index(max(tab_timestamps))]
+
+    limit = (load_more_clicks or 0) * 10 + 10
+    filtered = combined_entries
+
+    if selected_source != "all":
+        filtered = [entry for entry in filtered if entry.source == selected_source]
+
+    if search_text:
+        search_text = search_text.lower()
+        filtered = [entry for entry in filtered if search_text in entry.title.lower() or search_text in getattr(entry, "summary", "").lower()]
+
+    return public_news_cards(filtered[:limit])
